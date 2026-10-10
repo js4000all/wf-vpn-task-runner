@@ -36,42 +36,28 @@ L2TP/IPsec による VPN 接続を確立し、その接続コンテキスト内�
 
 `workflow_dispatch` から workflow を実行し、正常終了することを確認してください。
 
-### 3. VPN 内で実行する処理を追加する
+### 3. 実行条件と処理を結びつける
 
-任意のスクリプトをリポジトリに追加します。
-
-例:
-
-```text
-scripts/collect-metrics.sh
-```
-
-その後、Repository Variable `VPN_ENTRYPOINT_SCRIPT` にスクリプトのパスを設定します。
-
-```text
-VPN_ENTRYPOINT_SCRIPT=scripts/collect-metrics.sh
-```
-
-これにより、VPN 接続確立後に指定したスクリプトが実行されます。
-
-### 4. 必要に応じて実行条件を追加する
-
-処理本体は reusable workflow として分離されているため、実行条件は薄い wrapper workflow で定義できます。
+処理本体は reusable workflow として分離されているため、いつ何を実行するかのみ、薄い wrapper workflow として定義します。
+例えば、毎時でメトリクス収集するならこうします。
 
 ```yaml
-name: VM monitoring
+name: Collect VM metrics
 
 on:
   workflow_dispatch:
-
   schedule:
     - cron: '0 * * * *'
 
 jobs:
   run:
     uses: ./.github/workflows/vpn-task.yml
+    with:
+      entrypoint: ./scripts/collect-metrics.sh
     secrets: inherit
 ```
+
+実行したいスクリプトのパスは、`entrypoint`として処理本体に引き渡します。
 
 Forkして利用する場合も、既存の VPN 基盤ファイルを変更せず、Variables / Secrets、実行スクリプト、wrapper workflow の追加だけでカスタマイズすることを推奨します。これにより upstream からの変更を取り込みやすく、不要な差分や conflict を減らせます。
 
@@ -96,7 +82,6 @@ VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github
 | `VPN_USERNAME` | Yes | - | PPP / MS-CHAPv2 認証で使用する VPN ユーザー名です。 |
 | `VPN_REMOTE_NETWORKS` | Yes | - | VPCのネットワークアドレスです。`172.28.0.0/16`など。 |
 | `VPN_CHECK_HOST_IP` | Yes | - | VPN 接続確認に使用する VPC 内の代表 VM の IPv4 アドレスです。PPP 接続後、このホストへの ping 成功をもって VPN 接続成功と判定します。 |
-| `VPN_ENTRYPOINT_SCRIPT` | No | Yes | 実際に実行したいスクリプトをプロジェクトルートからの相対パスで指定します。Ex.) `./script/collect-metrics.sh` |
 
 ### Required secrets
 
