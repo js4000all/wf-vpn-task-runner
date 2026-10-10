@@ -62,6 +62,61 @@ jobs:
 Forkして利用する場合も、既存の VPN 基盤ファイルを変更せず、Variables / Secrets、実行スクリプト、wrapper workflow の追加だけでカスタマイズすることを推奨します。これにより upstream からの変更を取り込みやすく、不要な差分や conflict を減らせます。
 
 
+## Artifact output
+
+VPN 接続コンテキスト内で実行される entrypoint スクリプトには、成果物の出力先ディレクトリパスとして `VPN_ARTIFACT_DIR` が渡されます。
+
+entrypoint スクリプトは、GitHub Actions の artifact 機能を直接意識する必要はありません。保存したいファイルを `VPN_ARTIFACT_DIR` 配下に出力するだけで、workflow 終了時に自動的に回収されます。
+
+例:
+
+```bash
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+: "${VPN_ARTIFACT_DIR:?VPN_ARTIFACT_DIR is required}"
+
+ssh monitor@172.27.1.10 'df -h' \
+  > "${VPN_ARTIFACT_DIR}/disk-usage.txt"
+
+ssh monitor@172.27.1.10 'free -m' \
+  > "${VPN_ARTIFACT_DIR}/memory.txt"
+```
+
+entrypoint が正常終了しなかった場合でも、それまでに `VPN_ARTIFACT_DIR` に生成されたファイルは回収対象になります。
+
+`VPN_ARTIFACT_DIR` 内にファイルが存在しない場合は artifact は作成されません。そのため、成果物を必要としない処理でも特別な設定は不要です。
+
+artifact の名前は wrapper workflow から `artifact-name` input で指定できます(省略した場合は `vpn-task`)。
+
+```yaml
+jobs:
+  run:
+    uses: ./.github/workflows/vpn-task.yml
+    with:
+      entrypoint: .github/vpn/collect-metrics.sh
+      artifact-name: vm-metrics
+    secrets: inherit
+```
+
+### Available VPN context
+
+entrypoint スクリプトには、VPN 接続後の情報も環境変数として渡されます。
+
+| Name | Description |
+| --- | --- |
+| `VPN_CONTEXT_ACTIVE` | VPN 接続コンテキスト内で実行されている場合は `true` |
+| `VPN_CONTEXT_INTERFACE` | PPP インターフェース名 |
+| `VPN_CONTEXT_LOCAL_IP` | PPP 接続で割り当てられたローカル IP アドレス |
+| `VPN_CONTEXT_PEER_IP` | PPP peer の IP アドレス |
+| `VPN_CONTEXT_SERVER_IP` | VPN サーバの IP アドレス |
+| `VPN_CONTEXT_CHECK_HOST_IP` | VPN 接続確認に使用した VPC 内ホストの IP アドレス |
+| `VPN_ARTIFACT_DIR` | artifact として回収させたいファイルの出力先ディレクトリパス |
+
+これらを利用することで、entrypoint スクリプトは VPN の確立処理や GitHub Actions の artifact 実装を意識せず、VPC 内で実行したい処理と成果物の生成に集中できます。
+
+
 ## VPN workflow configuration
 
 VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github/scripts/vpn-defaults.sh` の既定値を組み合わせて設定します。
