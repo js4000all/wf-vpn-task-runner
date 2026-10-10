@@ -1,5 +1,79 @@
-# wf-vpn-connection
-VPN接続をして所定の処理を行うGitHub workflowの雛形
+# wf-vpn-task-runner
+
+L2TP/IPsec による VPN 接続を確立し、その接続コンテキスト内で所定の処理を実行するための GitHub Actions ベースの実行基盤です。
+基盤側で VPN 接続の確立・疎通確認・切断を管理し、接続確立後に利用者が指定したスクリプトを実行します。
+
+利用者は VPN 接続処理の詳細を意識せず、VPN 接続後に実行したい処理の実装に集中できます。
+
+## Getting started
+
+このリポジトリを利用する場合は、リポジトリを複製するか Fork して開始します。
+
+本基盤はそのまま再利用できるように構成しているので、通常は既存の workflow や `.github/scripts/` 配下のファイルを変更する必要はありません。
+
+### 1. Repository Variables / Secrets を設定する
+
+最低限、以下を設定します。
+
+**Variables**
+
+- `VPN_SERVER_IP`
+- `VPN_USERNAME`
+- `VPN_CHECK_HOST_IP`
+
+**Secrets**
+
+- `VPN_PSK`
+- `VPN_PASSWORD`
+
+それぞれの詳細は後段を参照してください。
+その他の VPN 設定値には既定値があり、必要な場合のみ Repository Variables で上書きできます。
+
+### 2. VPN 接続を確認する
+
+初期状態では、VPN 接続後に `.github/vpn/example.sh` が実行されます。このスクリプトでは VPN コンテキストやルーティング、代表 VM への疎通を確認できます(実際には代表VMへの疎通完了をもってVPN接続完了と判定するので、この時点では必ず疎通します)。
+
+`workflow_dispatch` から workflow を実行し、正常終了することを確認してください。
+
+### 3. VPN 内で実行する処理を追加する
+
+任意のスクリプトをリポジトリに追加します。
+
+例:
+
+```text
+scripts/collect-metrics.sh
+```
+
+その後、Repository Variable `VPN_ENTRYPOINT_SCRIPT` にスクリプトのパスを設定します。
+
+```text
+VPN_ENTRYPOINT_SCRIPT=scripts/collect-metrics.sh
+```
+
+これにより、VPN 接続確立後に指定したスクリプトが実行されます。
+
+### 4. 必要に応じて実行条件を追加する
+
+処理本体は reusable workflow として分離されているため、実行条件は薄い wrapper workflow で定義できます。
+
+```yaml
+name: VM monitoring
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  run:
+    uses: ./.github/workflows/vpn-task.yml
+    secrets: inherit
+```
+
+Forkして利用する場合も、既存の VPN 基盤ファイルを変更せず、Variables / Secrets、実行スクリプト、wrapper workflow の追加だけでカスタマイズすることを推奨します。これにより upstream からの変更を取り込みやすく、不要な差分や conflict を減らせます。
+
 
 ## VPN workflow configuration
 
@@ -85,10 +159,6 @@ VPN_IKE_VERSION="${VPN_IKE_VERSION:-ikev1}"
 そのため、任意設定の Variable を GitHub 側に登録していない場合は、自動的に `vpn-defaults.sh` の既定値が使用されます。
 
 一方、`VPN_SERVER_IP`、`VPN_USERNAME`、`VPN_CHECK_HOST_IP`、`VPN_PSK`、`VPN_PASSWORD` には有効な既定値を持たせません。未設定の場合、`vpn-start.sh` が接続開始前にエラー終了します。
-
-## HOW TO USE
-
-TBD
 
 ### Connection success criteria
 
