@@ -3,21 +3,19 @@
 set -Eeuo pipefail
 
 REPOSITORY_ROOT="${GITHUB_WORKSPACE:-$PWD}"
-DEFAULT_ENTRYPOINT=".github/vpn/example.sh"
+: "${VPN_ENTRYPOINT_SCRIPT:?VPN_ENTRYPOINT_SCRIPT is required}"
 
-ENTRYPOINT="${VPN_ENTRYPOINT_SCRIPT:-${DEFAULT_ENTRYPOINT}}"
-
-if [[ "${ENTRYPOINT}" = /* ]]; then
-    ENTRYPOINT_PATH="${ENTRYPOINT}"
+if [[ "${VPN_ENTRYPOINT_SCRIPT}" = /* ]]; then
+    ENTRYPOINT_PATH="${VPN_ENTRYPOINT_SCRIPT}"
 else
-    ENTRYPOINT_PATH="${REPOSITORY_ROOT}/${ENTRYPOINT}"
+    ENTRYPOINT_PATH="${REPOSITORY_ROOT}/${VPN_ENTRYPOINT_SCRIPT}"
 fi
 
 if [[ ! -f "${ENTRYPOINT_PATH}" ]]; then
-    echo "VPN entrypoint script not found: ${ENTRYPOINT}" >&2
+    echo "VPN entrypoint script not found: ${VPN_ENTRYPOINT_SCRIPT}" >&2
     exit 1
 fi
 
-echo "[vpn] Running entrypoint: ${ENTRYPOINT}"
+echo "[vpn] Running entrypoint: ${VPN_ENTRYPOINT_SCRIPT}"
 
 exec bash "${ENTRYPOINT_PATH}"

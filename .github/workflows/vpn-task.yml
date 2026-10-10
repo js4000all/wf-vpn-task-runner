@@ -2,10 +2,22 @@ name: VPN task
 
 on:
   workflow_call:
+    inputs:
+      entrypoint:
+        type: string
+        required: true
+
+      artifact-name:
+        type: string
+        required: false
+        default: vpn-task
 
 jobs:
   test-vpn:
     runs-on: ubuntu-latest
+
+    env:
+      VPN_ARTIFACT_DIR: ${{ runner.temp }}/vpn-task-artifacts
 
     steps:
       - name: Checkout
@@ -56,3 +68,12 @@ jobs:
 
         run: |
           .github/scripts/with-vpn.sh -- .github/scripts/vpn-entrypoint.sh
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact-name }}-${{ github.run_id }}
+          path: ${{ env.VPN_ARTIFACT_DIR }}
+          if-no-files-found: ignore
+          retention-days: 14

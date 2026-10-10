@@ -6,4 +6,6 @@ on:
 jobs:
   run:
     uses: ./.github/workflows/vpn-task.yml
+    with:
+      entrypoint: .github/vpn/example.sh
     secrets: inherit
