@@ -16,9 +16,6 @@ jobs:
   test-vpn:
     runs-on: ubuntu-latest
 
-    env:
-      VPN_ARTIFACT_DIR: ${{ runner.temp }}/vpn-task-artifacts
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,6 +30,14 @@ jobs:
             ppp \
             iproute2 \
             iputils-ping
+
+      - name: Set runtime environment
+        run: |
+          echo "VPN_ARTIFACT_DIR=${RUNNER_TEMP}/vpn-task-artifacts" >> "$GITHUB_ENV"
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p "${VPN_ARTIFACT_DIR}"
 
       - name: Run in VPN context
         env:
@@ -67,6 +72,7 @@ jobs:
           VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
 
         run: |
+          echo "VPN_ARTIFACT_DIR=${VPN_ARTIFACT_DIR}"
           .github/scripts/with-vpn.sh -- .github/scripts/vpn-entrypoint.sh
 
       - name: Upload artifacts
