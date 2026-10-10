@@ -19,6 +19,7 @@ L2TP/IPsec による VPN 接続を確立し、その接続コンテキスト内�
 
 - `VPN_SERVER_IP`
 - `VPN_USERNAME`
+- `VPN_REMOTE_NETWORKS`
 - `VPN_CHECK_HOST_IP`
 
 **Secrets**
@@ -93,6 +94,7 @@ VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github
 | --- | --- | --- | --- |
 | `VPN_SERVER_IP` | Yes | - | VPN サーバの IPv4 アドレス。IKE の接続先および `rightid` として使用します。 |
 | `VPN_USERNAME` | Yes | - | PPP / MS-CHAPv2 認証で使用する VPN ユーザー名です。 |
+| `VPN_REMOTE_NETWORKS` | Yes | - | VPCのネットワークアドレスです。`172.28.0.0/16`など。 |
 | `VPN_CHECK_HOST_IP` | Yes | - | VPN 接続確認に使用する VPC 内の代表 VM の IPv4 アドレスです。PPP 接続後、このホストへの ping 成功をもって VPN 接続成功と判定します。 |
 | `VPN_ENTRYPOINT_SCRIPT` | No | Yes | 実際に実行したいスクリプトをプロジェクトルートからの相対パスで指定します。Ex.) `./script/collect-metrics.sh` |
 

@@ -27,6 +27,7 @@ jobs:
           # Required variables
           VPN_SERVER_IP: ${{ vars.VPN_SERVER_IP }}
           VPN_USERNAME: ${{ vars.VPN_USERNAME }}
+          VPN_REMOTE_NETWORKS: ${{ vars.VPN_REMOTE_NETWORKS }}
           VPN_CHECK_HOST_IP: ${{ vars.VPN_CHECK_HOST_IP }}
 
           # Your script path

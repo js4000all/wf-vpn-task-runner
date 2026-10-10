@@ -200,6 +200,22 @@ log "PPP connected"
 
 ip -4 addr show dev "${VPN_PPP_INTERFACE}"
 
+if [[ -n "${VPN_REMOTE_NETWORKS}" ]]; then
+    log "Configuring VPN routes"
+
+    for network in ${VPN_REMOTE_NETWORKS}; do
+        log "Adding route: ${network} via ${VPN_PPP_INTERFACE}"
+
+        sudo ip route replace \
+            "${network}" \
+            dev "${VPN_PPP_INTERFACE}"
+    done
+fi
+
+log "Checking route to ${VPN_CHECK_HOST_IP}"
+
+ip route get "${VPN_CHECK_HOST_IP}"
+
 log "Checking connectivity to ${VPN_CHECK_HOST_IP}"
 
 vpn_reachable=false
