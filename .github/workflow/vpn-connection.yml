@@ -1,0 +1,52 @@
+name: L2TP/IPsec connection
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-vpn:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install VPN packages
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            strongswan \
+            strongswan-starter \
+            xl2tpd \
+            ppp \
+            iproute2 \
+            iputils-ping
+      - name: Run in VPN context
+        env:
+          # Required variables
+          VPN_SERVER_IP: ${{ vars.VPN_SERVER_IP }}
+          VPN_USERNAME: ${{ vars.VPN_USERNAME }}
+          VPN_CHECK_HOST_IP: ${{ vars.VPN_CHECK_HOST_IP }}
+
+          # VPN implementation overrides
+          VPN_CONNECTION_NAME: ${{ vars.VPN_CONNECTION_NAME }}
+          VPN_IKE_VERSION: ${{ vars.VPN_IKE_VERSION }}
+          VPN_IKE_PROPOSAL: ${{ vars.VPN_IKE_PROPOSAL }}
+          VPN_ESP_PROPOSAL: ${{ vars.VPN_ESP_PROPOSAL }}
+          VPN_IKE_LIFETIME: ${{ vars.VPN_IKE_LIFETIME }}
+          VPN_L2TP_PORT: ${{ vars.VPN_L2TP_PORT }}
+          VPN_PPP_MTU: ${{ vars.VPN_PPP_MTU }}
+          VPN_PPP_MRU: ${{ vars.VPN_PPP_MRU }}
+          VPN_PPP_INTERFACE: ${{ vars.VPN_PPP_INTERFACE }}
+
+          # Operational overrides
+          VPN_IPSEC_START_DELAY_SEC: ${{ vars.VPN_IPSEC_START_DELAY_SEC }}
+          VPN_L2TP_START_DELAY_SEC: ${{ vars.VPN_L2TP_START_DELAY_SEC }}
+          VPN_CONNECT_TIMEOUT_SEC: ${{ vars.VPN_CONNECT_TIMEOUT_SEC }}
+          VPN_PING_TIMEOUT_SEC: ${{ vars.VPN_PING_TIMEOUT_SEC }}
+          VPN_DISCONNECT_TIMEOUT_SEC: ${{ vars.VPN_DISCONNECT_TIMEOUT_SEC }}
+
+          # Secrets
+          VPN_PSK: ${{ secrets.VPN_PSK }}
+          VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
+
+        run: |
+          .github/scripts/with-vpn.sh -- \
+            ./scripts/collect-vm-metrics.sh
