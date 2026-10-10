@@ -20,6 +20,7 @@ VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github
 | `VPN_SERVER_IP` | Yes | - | VPN サーバの IPv4 アドレス。IKE の接続先および `rightid` として使用します。 |
 | `VPN_USERNAME` | Yes | - | PPP / MS-CHAPv2 認証で使用する VPN ユーザー名です。 |
 | `VPN_CHECK_HOST_IP` | Yes | - | VPN 接続確認に使用する VPC 内の代表 VM の IPv4 アドレスです。PPP 接続後、このホストへの ping 成功をもって VPN 接続成功と判定します。 |
+| `VPN_ENTRYPOINT_SCRIPT` | No | Yes | 実際に実行したいスクリプトをプロジェクトルートからの相対パスで指定します。Ex.) `./script/collect-metrics.sh` |
 
 ### Required secrets
 

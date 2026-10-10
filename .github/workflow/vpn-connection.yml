@@ -25,6 +25,9 @@ jobs:
           VPN_USERNAME: ${{ vars.VPN_USERNAME }}
           VPN_CHECK_HOST_IP: ${{ vars.VPN_CHECK_HOST_IP }}
 
+          # Your script path
+          VPN_ENTRYPOINT_SCRIPT: ${{ vars.VPN_ENTRYPOINT_SCRIPT }}
+
           # VPN implementation overrides
           VPN_CONNECTION_NAME: ${{ vars.VPN_CONNECTION_NAME }}
           VPN_IKE_VERSION: ${{ vars.VPN_IKE_VERSION }}
@@ -48,5 +51,4 @@ jobs:
           VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
 
         run: |
-          .github/scripts/with-vpn.sh -- \
-            ./scripts/collect-vm-metrics.sh
+          .github/scripts/with-vpn.sh -- .github/scripts/vpn-entrypoint.sh
