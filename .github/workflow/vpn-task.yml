@@ -1,13 +1,16 @@
-name: L2TP/IPsec connection
+name: VPN task
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
   test-vpn:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install VPN packages
         run: |
           sudo apt-get update
@@ -18,6 +21,7 @@ jobs:
             ppp \
             iproute2 \
             iputils-ping
+
       - name: Run in VPN context
         env:
           # Required variables
