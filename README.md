@@ -90,7 +90,7 @@ jobs:
     uses: ./.github/workflows/vpn-task.yml
     with:
       entrypoint: ./scripts/collect-metrics.sh
-      artifact-name: vm-metrics
+      output-artifact-name: vm-metrics
     secrets: inherit
 ```
 
@@ -103,7 +103,7 @@ jobs:
 | Name | Required | Default | Description |
 | --- | --- | --- | --- |
 | `entrypoint` | Yes | - | VPN 接続確立後に実行するスクリプトのパスです。リポジトリルートからの相対パスで指定します。 |
-| `artifact-name` | No | `vpn-task` | `VPN_ARTIFACT_DIR` に生成されたファイルを保存する GitHub Actions artifact の名前です。 |
+| `output-artifact-name` | No | `vpn-task` | `VPN_OUTPUT_ARTIFACT_DIR` に生成されたファイルを保存する GitHub Actions artifact の名前です。 |
 | `retention-days` | No | workflow 定義値 | artifact の保持日数です。用途に応じて wrapper workflow から変更できます。 |
 
 ### Multiple tasks in one repository
@@ -131,9 +131,9 @@ scripts/
 
 ## Artifact output
 
-VPN 接続コンテキスト内で実行される entrypoint スクリプトには、成果物の出力先ディレクトリパスとして `VPN_ARTIFACT_DIR` が渡されます。
+VPN 接続コンテキスト内で実行される entrypoint スクリプトには、成果物の出力先ディレクトリパスとして `VPN_OUTPUT_ARTIFACT_DIR` が渡されます。
 
-entrypoint スクリプトは、GitHub Actions の artifact 機能を直接意識する必要はありません。保存したいファイルを `VPN_ARTIFACT_DIR` 配下に出力するだけで、workflow 終了時に自動的に回収されます。
+entrypoint スクリプトは、GitHub Actions の artifact 機能を直接意識する必要はありません。保存したいファイルを `VPN_OUTPUT_ARTIFACT_DIR` 配下に出力するだけで、workflow 終了時に自動的に回収されます。
 
 例:
 
@@ -142,20 +142,20 @@ entrypoint スクリプトは、GitHub Actions の artifact 機能を直接意�
 
 set -Eeuo pipefail
 
-: "${VPN_ARTIFACT_DIR:?VPN_ARTIFACT_DIR is required}"
+: "${VPN_OUTPUT_ARTIFACT_DIR:?VPN_OUTPUT_ARTIFACT_DIR is required}"
 
 ssh monitor@172.27.1.10 'df -h' \
-  > "${VPN_ARTIFACT_DIR}/disk-usage.txt"
+  > "${VPN_OUTPUT_ARTIFACT_DIR}/disk-usage.txt"
 
 ssh monitor@172.27.1.10 'free -m' \
-  > "${VPN_ARTIFACT_DIR}/memory.txt"
+  > "${VPN_OUTPUT_ARTIFACT_DIR}/memory.txt"
 ```
 
-entrypoint が正常終了しなかった場合でも、それまでに `VPN_ARTIFACT_DIR` に生成されたファイルは回収対象になります。
+entrypoint が正常終了しなかった場合でも、それまでに `VPN_OUTPUT_ARTIFACT_DIR` に生成されたファイルは回収対象になります。
 
-`VPN_ARTIFACT_DIR` 内にファイルが存在しない場合は artifact は作成されません。そのため、成果物を必要としない処理でも特別な設定は不要です。
+`VPN_OUTPUT_ARTIFACT_DIR` 内にファイルが存在しない場合は artifact は作成されません。そのため、成果物を必要としない処理でも特別な設定は不要です。
 
-artifact の名前は wrapper workflow から `artifact-name` input で指定できます(省略した場合は `vpn-task`)。
+artifact の名前は wrapper workflow から `output-artifact-name` input で指定できます(省略した場合は `vpn-task`)。
 
 ```yaml
 jobs:
@@ -179,7 +179,7 @@ entrypoint スクリプトには、VPN 接続後の情報も環境変数とし�
 | `VPN_CONTEXT_PEER_IP` | PPP peer の IP アドレス |
 | `VPN_CONTEXT_SERVER_IP` | VPN サーバの IP アドレス |
 | `VPN_CONTEXT_CHECK_HOST_IP` | VPN 接続確認に使用した VPC 内ホストの IP アドレス |
-| `VPN_ARTIFACT_DIR` | artifact として回収させたいファイルの出力先ディレクトリパス |
+| `VPN_OUTPUT_ARTIFACT_DIR` | artifact として回収させたいファイルの出力先ディレクトリパス |
 
 これらを利用することで、entrypoint スクリプトは VPN の確立処理や GitHub Actions の artifact 実装を意識せず、VPC 内で実行したい処理と成果物の生成に集中できます。
 

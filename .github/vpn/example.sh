@@ -2,9 +2,9 @@
 
 set -Eeuo pipefail
 
-: "${VPN_ARTIFACT_DIR:?VPN_ARTIFACT_DIR is required}"
+: "${VPN_OUTPUT_ARTIFACT_DIR:?VPN_OUTPUT_ARTIFACT_DIR is required}"
 
-REPORT_FILE="${VPN_ARTIFACT_DIR}/vpn-context.html"
+REPORT_FILE="${VPN_OUTPUT_ARTIFACT_DIR}/vpn-context.html"
 
 cat > "${REPORT_FILE}" <<EOF
 <!doctype html>
@@ -77,8 +77,8 @@ cat > "${REPORT_FILE}" <<EOF
         <td><code>${VPN_CONTEXT_CHECK_HOST_IP:-}</code></td>
       </tr>
       <tr>
-        <th>VPN_ARTIFACT_DIR</th>
-        <td><code>${VPN_ARTIFACT_DIR}</code></td>
+        <th>VPN_OUTPUT_ARTIFACT_DIR</th>
+        <td><code>${VPN_OUTPUT_ARTIFACT_DIR}</code></td>
       </tr>
     </tbody>
   </table>
@@ -108,7 +108,7 @@ printf '  %-32s %s\n' "VPN_CONTEXT_LOCAL_IP" "${VPN_CONTEXT_LOCAL_IP:-}"
 printf '  %-32s %s\n' "VPN_CONTEXT_PEER_IP" "${VPN_CONTEXT_PEER_IP:-}"
 printf '  %-32s %s\n' "VPN_CONTEXT_SERVER_IP" "${VPN_CONTEXT_SERVER_IP:-}"
 printf '  %-32s %s\n' "VPN_CONTEXT_CHECK_HOST_IP" "${VPN_CONTEXT_CHECK_HOST_IP:-}"
-printf '  %-32s %s\n' "VPN_ARTIFACT_DIR" "${VPN_ARTIFACT_DIR}"
+printf '  %-32s %s\n' "VPN_OUTPUT_ARTIFACT_DIR" "${VPN_OUTPUT_ARTIFACT_DIR}"
 echo
 echo "Enjoy!"
 

@@ -6,7 +6,7 @@ on:
       entrypoint:
         type: string
         required: true
-      artifact-name:
+      output-artifact-name:
         type: string
         required: false
         default: vpn-task
@@ -36,11 +36,11 @@ jobs:
 
       - name: Set runtime environment
         run: |
-          echo "VPN_ARTIFACT_DIR=${RUNNER_TEMP}/vpn-task-artifacts" >> "$GITHUB_ENV"
+          echo "VPN_OUTPUT_ARTIFACT_DIR=${RUNNER_TEMP}/vpn-task-output-artifacts" >> "$GITHUB_ENV"
 
       - name: Prepare artifact directory
         run: |
-          mkdir -p "${VPN_ARTIFACT_DIR}"
+          mkdir -p "${VPN_OUTPUT_ARTIFACT_DIR}"
 
       - name: Run in VPN context
         env:
@@ -75,14 +75,14 @@ jobs:
           VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
 
         run: |
-          echo "VPN_ARTIFACT_DIR=${VPN_ARTIFACT_DIR}"
+          echo "VPN_OUTPUT_ARTIFACT_DIR=${VPN_OUTPUT_ARTIFACT_DIR}"
           .github/scripts/with-vpn.sh -- .github/scripts/vpn-entrypoint.sh
 
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.artifact-name }}-${{ github.run_id }}
-          path: ${{ env.VPN_ARTIFACT_DIR }}
+          name: ${{ inputs.output-artifact-name }}
+          path: ${{ env.VPN_OUTPUT_ARTIFACT_DIR }}
           if-no-files-found: ignore
           retention-days: ${{ inputs.retention-days }}
