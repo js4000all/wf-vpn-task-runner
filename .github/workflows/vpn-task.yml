@@ -6,6 +6,10 @@ on:
       entrypoint:
         type: string
         required: true
+      input-artifact-name:
+        type: string
+        required: false
+        default: ''
       output-artifact-name:
         type: string
         required: false
@@ -36,11 +40,20 @@ jobs:
 
       - name: Set runtime environment
         run: |
+          echo "VPN_INPUT_ARTIFACT_DIR=${RUNNER_TEMP}/vpn-task-input-artifacts" >> "$GITHUB_ENV"
           echo "VPN_OUTPUT_ARTIFACT_DIR=${RUNNER_TEMP}/vpn-task-output-artifacts" >> "$GITHUB_ENV"
 
       - name: Prepare artifact directory
         run: |
+          mkdir -p "${VPN_INPUT_ARTIFACT_DIR}"
           mkdir -p "${VPN_OUTPUT_ARTIFACT_DIR}"
+
+      - name: Download input artifact
+        if: inputs.input-artifact-name != ''
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.input-artifact-name }}
+          path: ${{ env.VPN_INPUT_ARTIFACT_DIR }}
 
       - name: Run in VPN context
         env:
@@ -75,7 +88,6 @@ jobs:
           VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
 
         run: |
-          echo "VPN_OUTPUT_ARTIFACT_DIR=${VPN_OUTPUT_ARTIFACT_DIR}"
           .github/scripts/with-vpn.sh -- .github/scripts/vpn-entrypoint.sh
 
       - name: Upload artifacts

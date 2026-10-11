@@ -77,6 +77,10 @@ cat > "${REPORT_FILE}" <<EOF
         <td><code>${VPN_CONTEXT_CHECK_HOST_IP:-}</code></td>
       </tr>
       <tr>
+        <th>VPN_INPUT_ARTIFACT_DIR</th>
+        <td><code>${VPN_INPUT_ARTIFACT_DIR}</code></td>
+      </tr>
+      <tr>
         <th>VPN_OUTPUT_ARTIFACT_DIR</th>
         <td><code>${VPN_OUTPUT_ARTIFACT_DIR}</code></td>
       </tr>
@@ -108,6 +112,7 @@ printf '  %-32s %s\n' "VPN_CONTEXT_LOCAL_IP" "${VPN_CONTEXT_LOCAL_IP:-}"
 printf '  %-32s %s\n' "VPN_CONTEXT_PEER_IP" "${VPN_CONTEXT_PEER_IP:-}"
 printf '  %-32s %s\n' "VPN_CONTEXT_SERVER_IP" "${VPN_CONTEXT_SERVER_IP:-}"
 printf '  %-32s %s\n' "VPN_CONTEXT_CHECK_HOST_IP" "${VPN_CONTEXT_CHECK_HOST_IP:-}"
+printf '  %-32s %s\n' "VPN_INPUT_ARTIFACT_DIR" "${VPN_INPUT_ARTIFACT_DIR}"
 printf '  %-32s %s\n' "VPN_OUTPUT_ARTIFACT_DIR" "${VPN_OUTPUT_ARTIFACT_DIR}"
 echo
 echo "Enjoy!"

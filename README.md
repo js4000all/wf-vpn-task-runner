@@ -129,13 +129,22 @@ scripts/
 のように配置し、それぞれの wrapper workflow で異なる `entrypoint` を指定します。これにより、VPN 接続設定は共通化したまま、スケジュールと実行処理だけを独立して管理できます。
 
 
-## Artifact output
+## Artifact input/output
+
+### 入力
+
+wrapper workflowで`input-artifact-name` inputを指定すると、既に同名のアーティファクトが存在すると見なしてダウンロードします。
+entrypointスクリプトには、ダウンロード先のディレクトリパスとして`VPN_INPUT_ARTIFACT_DIR`が渡されます。
+
+```bash
+ls -la "${VPN_INPUT_ARTIFACT_DIR}"
+```
+
+### 出力
 
 VPN 接続コンテキスト内で実行される entrypoint スクリプトには、成果物の出力先ディレクトリパスとして `VPN_OUTPUT_ARTIFACT_DIR` が渡されます。
 
 entrypoint スクリプトは、GitHub Actions の artifact 機能を直接意識する必要はありません。保存したいファイルを `VPN_OUTPUT_ARTIFACT_DIR` 配下に出力するだけで、workflow 終了時に自動的に回収されます。
-
-例:
 
 ```bash
 #!/usr/bin/env bash
@@ -157,15 +166,6 @@ entrypoint が正常終了しなかった場合でも、それまでに `VPN_OUT
 
 artifact の名前は wrapper workflow から `output-artifact-name` input で指定できます(省略した場合は `vpn-task`)。
 
-```yaml
-jobs:
-  run:
-    uses: ./.github/workflows/vpn-task.yml
-    with:
-      entrypoint: .github/vpn/collect-metrics.sh
-      artifact-name: vm-metrics
-    secrets: inherit
-```
 
 ### Available VPN context
 
@@ -179,9 +179,40 @@ entrypoint スクリプトには、VPN 接続後の情報も環境変数とし�
 | `VPN_CONTEXT_PEER_IP` | PPP peer の IP アドレス |
 | `VPN_CONTEXT_SERVER_IP` | VPN サーバの IP アドレス |
 | `VPN_CONTEXT_CHECK_HOST_IP` | VPN 接続確認に使用した VPC 内ホストの IP アドレス |
+| `VPN_INPUT_ARTIFACT_DIR` | 既存artifact のダウンロード先ディレクトリパス |
 | `VPN_OUTPUT_ARTIFACT_DIR` | artifact として回収させたいファイルの出力先ディレクトリパス |
 
 これらを利用することで、entrypoint スクリプトは VPN の確立処理や GitHub Actions の artifact 実装を意識せず、VPC 内で実行したい処理と成果物の生成に集中できます。
+
+
+### 例
+
+```yaml
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare target list
+        run: |
+          mkdir -p input
+          ./scripts/build-target-list.sh > input/targets.json
+
+      - name: Upload input
+        uses: actions/upload-artifact@v7
+        with:
+          name: vm-metrics-input
+          path: input
+
+  vpn-task:
+    needs: prepare
+    uses: ./.github/workflows/vpn-task.yml
+    with:
+      entrypoint: ./scripts/collect-metrics.sh
+      input-artifact-name: vm-metrics-input
+      artifact-name: vm-metrics
+    secrets: inherit
+```
 
 
 ## VPN workflow configuration
