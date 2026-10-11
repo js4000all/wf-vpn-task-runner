@@ -44,7 +44,38 @@ VPN 接続後に[.github/vpn/example.sh](.github/vpn/example.sh)が実行され�
 ### 3. 実行条件と処理を結びつける
 
 処理本体は reusable workflow として分離されているため、いつ何を実行するかだけを薄い wrapper workflow として定義します。
-例えば、毎時でメトリクス収集するならこうします。
+例えば`.github/workflows/collect-metrics.yml`を作成し、実行条件を記述するとともに、`uses`で`./.github/workflows/vpn-task.yml`を実行するように定義します。実行したい処理は`vpn-task.yml`のinputsに指定します。
+
+詳細は[後段](#wrapper-workflow)を参照してください。
+
+
+## Wrapper workflow
+
+本基盤では、実際の実行条件と実行対象を薄い wrapper workflow で定義します。
+
+VPN 接続処理そのものは reusable workflow である `.github/workflows/vpn-task.yml` に集約されているため、wrapper workflow では主に以下を指定します。
+
+- いつ実行するか
+- VPN 接続後に何を実行するか
+- 必要に応じて artifact の名前や保持期間
+
+最小構成は次の通りです。
+
+```yaml
+name: Run VPN task
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    uses: ./.github/workflows/vpn-task.yml
+    with:
+      entrypoint: .github/vpn/example.sh
+    secrets: inherit
+```
+
+定期実行が必要なら、wrapper workflow 側に `schedule` を定義します。
 
 ```yaml
 name: Collect VM metrics
@@ -63,9 +94,39 @@ jobs:
     secrets: inherit
 ```
 
-実行したいスクリプトのパスは、`entrypoint` inputとして処理本体に引き渡します。
+このように、VPN 接続基盤を変更せず、処理ごとに異なるスケジュールと entrypoint を Git 管理できます。
 
-Forkして利用する場合も、既存の VPN 基盤ファイルを変更せず、Variables / Secrets、実行スクリプト、wrapper workflow の追加だけでカスタマイズすることを推奨します。これにより upstream からの変更を取り込みやすく、不要な差分や conflict を減らせます。
+### Inputs
+
+`vpn-task.yml` は以下の inputs を受け取ります。
+
+| Name | Required | Default | Description |
+| --- | --- | --- | --- |
+| `entrypoint` | Yes | - | VPN 接続確立後に実行するスクリプトのパスです。リポジトリルートからの相対パスで指定します。 |
+| `artifact-name` | No | `vpn-task` | `VPN_ARTIFACT_DIR` に生成されたファイルを保存する GitHub Actions artifact の名前です。 |
+| `retention-days` | No | workflow 定義値 | artifact の保持日数です。用途に応じて wrapper workflow から変更できます。 |
+
+### Multiple tasks in one repository
+
+実行タイミングの異なる複数の処理を、同じリポジトリ内で管理することもできます。
+
+例えば、
+
+```text
+.github/
+  workflows/
+    vpn-task.yml
+    collect-hourly.yml
+    nightly-maintenance.yml
+    weekly-report.yml
+
+scripts/
+  collect-metrics.sh
+  nightly-maintenance.sh
+  weekly-report.sh
+```
+
+のように配置し、それぞれの wrapper workflow で異なる `entrypoint` を指定します。これにより、VPN 接続設定は共通化したまま、スケジュールと実行処理だけを独立して管理できます。
 
 
 ## Artifact output
