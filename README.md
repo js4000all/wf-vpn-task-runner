@@ -7,9 +7,12 @@ L2TP/IPsec による VPN 接続を確立し、その接続コンテキスト内�
 
 ## Getting started
 
-このリポジトリを利用する場合は、リポジトリを複製するか Fork して開始します。
+このリポジトリを利用する場合は、まずリポジトリを複製するか Fork します。
+その後、下記の要領で最小限の要素を追加します。
 
-本基盤はそのまま再利用できるように構成しているので、通常は既存の workflow や `.github/scripts/` 配下のファイルを変更する必要はありません。
+- Variables / Secrets の設定
+- VPCに接続した状態で実行したいスクリプト
+- そのスクリプトを起動するための薄いwrapper workflow
 
 ### 1. Repository Variables / Secrets を設定する
 
@@ -27,18 +30,20 @@ L2TP/IPsec による VPN 接続を確立し、その接続コンテキスト内�
 - `VPN_PSK`
 - `VPN_PASSWORD`
 
-それぞれの詳細は後段を参照してください。
+それぞれの詳細は[後段](#vpn-workflow-configuration)を参照してください。
 その他の VPN 設定値には既定値があり、必要な場合のみ Repository Variables で上書きできます。
 
 ### 2. VPN 接続を確認する
 
-初期状態では、VPN 接続後に `.github/vpn/example.sh` が実行されます。このスクリプトでは VPN コンテキストやルーティング、代表 VM への疎通を確認できます(実際には代表VMへの疎通完了をもってVPN接続完了と判定するので、この時点では必ず疎通します)。
+サンプルworkflowである[Run VPN task manually](.github/workflows/run-vpn-task-manual.yml)では、
+VPN 接続後に[.github/vpn/example.sh](.github/vpn/example.sh)が実行されます。
+このスクリプトは VPN コンテキストやルーティング情報をログ出力し、簡潔なHTMLレポートを[アーティファクト](#artifact-output)として出力します。
 
 `workflow_dispatch` から workflow を実行し、正常終了することを確認してください。
 
 ### 3. 実行条件と処理を結びつける
 
-処理本体は reusable workflow として分離されているため、いつ何を実行するかのみ、薄い wrapper workflow として定義します。
+処理本体は reusable workflow として分離されているため、いつ何を実行するかだけを薄い wrapper workflow として定義します。
 例えば、毎時でメトリクス収集するならこうします。
 
 ```yaml
@@ -54,10 +59,11 @@ jobs:
     uses: ./.github/workflows/vpn-task.yml
     with:
       entrypoint: ./scripts/collect-metrics.sh
+      artifact-name: vm-metrics
     secrets: inherit
 ```
 
-実行したいスクリプトのパスは、`entrypoint`として処理本体に引き渡します。
+実行したいスクリプトのパスは、`entrypoint` inputとして処理本体に引き渡します。
 
 Forkして利用する場合も、既存の VPN 基盤ファイルを変更せず、Variables / Secrets、実行スクリプト、wrapper workflow の追加だけでカスタマイズすることを推奨します。これにより upstream からの変更を取り込みやすく、不要な差分や conflict を減らせます。
 
@@ -131,43 +137,41 @@ VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github
 
 以下は GitHub Actions の Repository Variables に設定する必要があります。
 
-| Name | Required | Override | Description |
-| --- | --- | --- | --- |
-| `VPN_SERVER_IP` | Yes | - | VPN サーバの IPv4 アドレス。IKE の接続先および `rightid` として使用します。 |
-| `VPN_USERNAME` | Yes | - | PPP / MS-CHAPv2 認証で使用する VPN ユーザー名です。 |
-| `VPN_REMOTE_NETWORKS` | Yes | - | VPCのネットワークアドレスです。`172.28.0.0/16`など。 |
-| `VPN_CHECK_HOST_IP` | Yes | - | VPN 接続確認に使用する VPC 内の代表 VM の IPv4 アドレスです。PPP 接続後、このホストへの ping 成功をもって VPN 接続成功と判定します。 |
+| Name | Description |
+| --- | --- |
+| `VPN_SERVER_IP` | VPN サーバの IPv4 アドレス。IKE の接続先および `rightid` として使用します。 |
+| `VPN_USERNAME` | PPP / MS-CHAPv2 認証で使用する VPN ユーザー名です。 |
+| `VPN_REMOTE_NETWORKS` | VPCのネットワークアドレスです。`172.28.0.0/16`など。 |
+| `VPN_CHECK_HOST_IP` | VPN 接続確認に使用する VPC 内の代表 VM の IPv4 アドレスです。PPP 接続後、このホストへの ping 成功をもって VPN 接続成功と判定します。 |
 
 ### Required secrets
 
 以下は GitHub Actions の Repository Secrets に設定する必要があります。
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `VPN_PSK` | Yes | IKEv1 / IPsec で使用する Pre-Shared Key です。 |
-| `VPN_PASSWORD` | Yes | PPP / MS-CHAPv2 認証で使用する VPN パスワードです。 |
+| Name | Description |
+| --- | --- |
+| `VPN_PSK` | IKEv1 / IPsec で使用する Pre-Shared Key です。 |
+| `VPN_PASSWORD` | PPP / MS-CHAPv2 認証で使用する VPN パスワードです。 |
 
 ### VPN implementation settings
 
 以下は `.github/scripts/vpn-defaults.sh` に既定値があります。
+同名の GitHub Repository Variable を設定することで上書きできます。
 
-通常は変更不要ですが、接続先 VPN サーバの仕様が異なる場合は、同名の GitHub Repository Variable を設定することで上書きできます。
+| Name | Default | Override | Description |
+| --- | --- | --- | --- |
+| `VPN_CONNECTION_NAME` | `l2tp-vpn` | Yes | strongSwan および xl2tpd 内で使用する接続名です。 |
+| `VPN_IKE_VERSION` | `ikev1` | Yes | IKE バージョンです。 |
+| `VPN_IKE_PROPOSAL` |`3des-sha1-modp1024!` | Yes | IKE Phase 1 の暗号スイートです。 |
+| `VPN_ESP_PROPOSAL` |`aes256-sha1!` | Yes | IPsec ESP の暗号スイートです。 |
+| `VPN_IKE_LIFETIME` |`8h` | Yes | IKE SA の lifetime です。 |
+| `VPN_L2TP_PORT` | `1701` | Yes | L2TP の UDP ポート番号です。 |
+| `VPN_PPP_MTU` | `1280` | Yes | PPP インターフェースの MTU です。 |
+| `VPN_PPP_MRU` | `1280` | Yes | PPP インターフェースの MRU です。 |
+| `VPN_PPP_INTERFACE` | `ppp0` | Yes | VPN 接続時に生成される PPP インターフェース名です。 |
 
-| Name | Required | Default | Override | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_CONNECTION_NAME` | No | `l2tp-vpn` | Yes | strongSwan および xl2tpd 内で使用する接続名です。 |
-| `VPN_IKE_VERSION` | No | `ikev1` | Yes | IKE バージョンです。 |
-| `VPN_IKE_PROPOSAL` | No | `3des-sha1-modp1024!` | Yes | IKE Phase 1 の暗号スイートです。 |
-| `VPN_ESP_PROPOSAL` | No | `aes256-sha1!` | Yes | IPsec ESP の暗号スイートです。 |
-| `VPN_IKE_LIFETIME` | No | `8h` | Yes | IKE SA の lifetime です。 |
-| `VPN_L2TP_PORT` | No | `1701` | Yes | L2TP の UDP ポート番号です。 |
-| `VPN_PPP_MTU` | No | `1280` | Yes | PPP インターフェースの MTU です。 |
-| `VPN_PPP_MRU` | No | `1280` | Yes | PPP インターフェースの MRU です。 |
-| `VPN_PPP_INTERFACE` | No | `ppp0` | Yes | VPN 接続時に生成される PPP インターフェース名です。 |
-
-上記の既定値は、現在利用している L2TP/IPsec VPN サーバで実接続確認済みの値を基準にしています。
-
-特に `VPN_IKE_PROPOSAL`、`VPN_ESP_PROPOSAL`、`VPN_IKE_LIFETIME` は VPN サーバ側の仕様に依存するため、別の VPN サーバを使用する場合は必要に応じて変更してください。
+既定値は、さくらのクラウドの VPN ルータで実接続を確認した構成を基準にしています。接続先 VPN サーバに応じて設定を変更してください。
+特に `VPN_IKE_PROPOSAL`、`VPN_ESP_PROPOSAL`、`VPN_IKE_LIFETIME` は VPN サーバ側の仕様に依存することが多いので、他の VPN サーバを利用する場合は事前に対応値を確認してください。
 
 ### Operational settings
 
@@ -175,13 +179,13 @@ VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github
 
 通常は変更不要ですが、GitHub Repository Variables から上書きできます。
 
-| Name | Required | Default | Override | Description |
-| --- | --- | --- | --- | --- |
-| `VPN_IPSEC_START_DELAY_SEC` | No | `1` | Yes | strongSwan 再起動後、IPsec 接続を開始するまでの待機秒数です。 |
-| `VPN_L2TP_START_DELAY_SEC` | No | `1` | Yes | xl2tpd 再起動後、L2TP 接続を開始するまでの待機秒数です。 |
-| `VPN_CONNECT_TIMEOUT_SEC` | No | `20` | Yes | PPP インターフェース確立を待機する最大秒数です。 |
-| `VPN_PING_TIMEOUT_SEC` | No | `20` | Yes | `VPN_CHECK_HOST_IP` への疎通確認を待機する最大秒数です。 |
-| `VPN_DISCONNECT_TIMEOUT_SEC` | No | `5` | Yes | VPN 切断時に PPP インターフェースの消滅を待機する最大秒数です。 |
+| Name | Default | Override | Description |
+| --- | --- | --- | --- |
+| `VPN_IPSEC_START_DELAY_SEC` | `1` | Yes | strongSwan 再起動後、IPsec 接続を開始するまでの待機秒数です。 |
+| `VPN_L2TP_START_DELAY_SEC` | `1` | Yes | xl2tpd 再起動後、L2TP 接続を開始するまでの待機秒数です。 |
+| `VPN_CONNECT_TIMEOUT_SEC` | `20` | Yes | PPP インターフェース確立を待機する最大秒数です。 |
+| `VPN_PING_TIMEOUT_SEC` | `20` | Yes | `VPN_CHECK_HOST_IP` への疎通確認を待機する最大秒数です。 |
+| `VPN_DISCONNECT_TIMEOUT_SEC` | `5` | Yes | VPN 切断時に PPP インターフェースの消滅を待機する最大秒数です。 |
 
 ### Configuration precedence
 
@@ -192,13 +196,13 @@ VPN 接続 workflow では、GitHub Actions の Variables / Secrets と `.github
 
 workflow では上書き可能な Variables もすべて環境変数として参照します。
 
-未定義の Repository Variable は空文字列として渡されますが、`vpn-defaults.sh` では以下の形式で既定値を適用します。
+未定義の Repository Variable は空文字列として渡されますが、`vpn-defaults.sh` で以下の形式で既定値を適用します。
 
 ```bash
 VPN_IKE_VERSION="${VPN_IKE_VERSION:-ikev1}"
 ```
 
-そのため、任意設定の Variable を GitHub 側に登録していない場合は、自動的に `vpn-defaults.sh` の既定値が使用されます。
+これにより、任意設定の Variable を GitHub 側に登録していない場合は、自動的に `vpn-defaults.sh` の既定値が使用されます。
 
 一方、`VPN_SERVER_IP`、`VPN_USERNAME`、`VPN_CHECK_HOST_IP`、`VPN_PSK`、`VPN_PASSWORD` には有効な既定値を持たせません。未設定の場合、`vpn-start.sh` が接続開始前にエラー終了します。
 

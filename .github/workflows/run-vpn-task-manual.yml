@@ -8,4 +8,5 @@ jobs:
     uses: ./.github/workflows/vpn-task.yml
     with:
       entrypoint: .github/vpn/example.sh
+      artifact-name: vpn-example
     secrets: inherit
