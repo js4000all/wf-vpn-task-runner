@@ -18,9 +18,9 @@ on:
         type: number
         required: false
         default: 0
-      
+
 jobs:
-  test-vpn:
+  run-with-vpn:
     runs-on: ubuntu-latest
 
     steps:
