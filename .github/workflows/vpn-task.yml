@@ -6,12 +6,15 @@ on:
       entrypoint:
         type: string
         required: true
-
       artifact-name:
         type: string
         required: false
         default: vpn-task
-
+      retention-days:
+        type: number
+        required: false
+        default: 0
+      
 jobs:
   test-vpn:
     runs-on: ubuntu-latest
@@ -82,4 +85,4 @@ jobs:
           name: ${{ inputs.artifact-name }}-${{ github.run_id }}
           path: ${{ env.VPN_ARTIFACT_DIR }}
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: ${{ inputs.retention-days }}
